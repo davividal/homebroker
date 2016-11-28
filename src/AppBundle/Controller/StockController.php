@@ -46,9 +46,6 @@ class StockController extends Controller
      */
     public function buyAction(Request $request)
     {
-        /** @var Trade $trade */
-        // $trade = new Trade();
-
         $stockOptions = json_decode(
             $this
                 ->get('guzzle.client.homebroker_api')
@@ -86,8 +83,13 @@ class StockController extends Controller
                         $trade['quantity']
                     )
                 );
-                dump(json_decode($response->getBody()));
-                die;
+
+                $form = $this->createFormBuilder()
+                    ->setAction($this->generateUrl('confirm-buy'))
+                    ->add('stockOption', HiddenType::class, ['data' => $trade['stockOption']->id])
+                    ->add('quantity', HiddenType::class, ['data' => $trade['quantity']])
+                    ->add('save', SubmitType::class, ['label' => 'Confirmar compra'])
+                    ->getForm();
 
                 return $this->render(
                     'home-broker/confirm-buy.html.twig',
@@ -116,31 +118,51 @@ class StockController extends Controller
         );
     }
 
+    /**
+     * @Route("/dashboard/buy-stocks/confirm", name="confirm-buy")
+     * @param Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\RedirectResponse
+     */
     public function confirmBuyAction(Request $request)
     {
+        $form = $this->createFormBuilder()
+            ->setAction($this->generateUrl('confirm-buy'))
+            ->add('stockOption', HiddenType::class)
+            ->add('quantity', HiddenType::class)
+            ->add('save', SubmitType::class)
+            ->getForm();
+
+        $form->handleRequest($request);
+
+
         $client = $this->get('guzzle.client.homebroker_api');
 
-        try {
-            $response = $client->post(
-                sprintf(
-                    '/stock-option/%d/%d/buy?quantity=%d',
-                    $this->getUser()->getId(),
-                    $trade['stockOption']->id,
-                    $trade['quantity']
-                )
-            );
+        if ($form->isSubmitted()) {
+            $trade = $form->getData();
 
-            $this->addFlash('notice', 'Ações compradas com sucesso!');
-
-            return $this->redirectToRoute('user-dashboard');
-        } catch (ClientException $e) {
-            $response = $e->getResponse();
-
-            if ($response->getStatusCode() !== 200) {
-                $this->addFlash(
-                    'error',
-                    json_decode($response->getBody())->error
+            try {
+                $response = $client->post(
+                    sprintf(
+                        '/stock-option/%d/%d/buy?quantity=%d',
+                        $this->getUser()->getId(),
+                        $trade['stockOption'],
+                        $trade['quantity']
+                    )
                 );
+
+                $this->addFlash('notice', 'Ações compradas com sucesso!');
+
+                return $this->redirectToRoute('user-dashboard');
+            } catch (ClientException $e) {
+                $response = $e->getResponse();
+
+                if ($response->getStatusCode() !== 200) {
+                    $this->addFlash(
+                        'error',
+                        json_decode($response->getBody())->error
+                    );
+                }
             }
         }
     }
@@ -174,6 +196,10 @@ class StockController extends Controller
         $form->handleRequest($request);
 
         if ($form->isSubmitted()) {
+            if (0 === $form->get('quantity')->getData()) {
+                $form->get('quantity')->addError(new FormError('Quantidade não disponível para venda!'));
+            }
+
             if ($form->get('quantity')->getData() > $transaction->trade->quantity) {
                 $form->get('quantity')->addError(new FormError('Quantidade não disponível para venda!'));
             }

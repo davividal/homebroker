@@ -4,8 +4,20 @@
     <h1>Confirmação de compra:</h1>
 
     <dl>
-        <dt>Empresa:</dt>
-        <dd>{{ details }}</dd>
+        <dt>Empresa</dt>
+        <dd>{{ details.stockOption.company }}</dd>
+
+        <dt>Valor total</dt>
+        <dd>R$ {{ details.total|number_format(2, ',', '.') }}</dd>
+
+        <dt>Taxa de corretagem</dt>
+        <dd>R$ {{ details.fee|number_format(2, ',', '.') }}</dd>
+
+        <dt>Saldo atual</dt>
+        <dd>R$ {{ details.actualBalance|number_format(2, ',', '.') }}</dd>
+
+        <dt>Saldo após a compra</dt>
+        <dd>R$ {{ details.newBalance|number_format(2, ',', '.') }}</dd>
     </dl>
 
     {{ form_start(form) }}

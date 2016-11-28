@@ -1,0 +1,20 @@
+{% extends 'home-broker/base-dashboard.html.twig' %}
+
+{% block body %}
+    <h1>Vender ações</h1>
+
+    <dl>
+        <dt>Empresa</dt>
+        <dd>{{ transaction.trade.stock_option.company }}</dd>
+
+        <dt>Valor unitário</dt>
+        <dd>R$ {{ transaction.trade.stock_option.value|number_format(2, ',', '.') }}</dd>
+
+        <dt>Quantidade disponível</dt>
+        <dd>{{ transaction.trade.quantity }}</dd>
+    </dl>
+
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    {{ form_end(form) }}
+{% endblock %}

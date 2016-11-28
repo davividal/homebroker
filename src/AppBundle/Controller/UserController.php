@@ -15,7 +15,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class UserController extends Controller
 {
     /**
-     * @Route("/dashboard/", name="user-dashboard")
+     * @Route("/dashboard", name="user-dashboard")
      */
     public function dashboardAction()
     {

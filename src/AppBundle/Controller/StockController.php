@@ -8,13 +8,12 @@
 
 namespace AppBundle\Controller;
 
-use AppBundle\Entity\StockOption;
-use AppBundle\Entity\Trade;
 use GuzzleHttp\Exception\ClientException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormError;
@@ -79,7 +78,7 @@ class StockController extends Controller
             $client = $this->get('guzzle.client.homebroker_api');
 
             try {
-                $response = $client->post(
+                $response = $client->get(
                     sprintf(
                         '/stock-option/%d/%d/buy?quantity=%d',
                         $this->getUser()->getId(),
@@ -87,10 +86,16 @@ class StockController extends Controller
                         $trade['quantity']
                     )
                 );
+                dump(json_decode($response->getBody()));
+                die;
 
-                $this->addFlash('notice', 'Ações compradas com sucesso!');
-
-                return $this->redirectToRoute('user-dashboard');
+                return $this->render(
+                    'home-broker/confirm-buy.html.twig',
+                    [
+                        'form' => $form->createView(),
+                        'details' => json_decode($response->getBody()),
+                    ]
+                );
             } catch (ClientException $e) {
                 $response = $e->getResponse();
 
@@ -107,6 +112,149 @@ class StockController extends Controller
             'home-broker/buy-stocks.html.twig',
             [
                 'form' => $form->createView(),
+            ]
+        );
+    }
+
+    public function confirmBuyAction(Request $request)
+    {
+        $client = $this->get('guzzle.client.homebroker_api');
+
+        try {
+            $response = $client->post(
+                sprintf(
+                    '/stock-option/%d/%d/buy?quantity=%d',
+                    $this->getUser()->getId(),
+                    $trade['stockOption']->id,
+                    $trade['quantity']
+                )
+            );
+
+            $this->addFlash('notice', 'Ações compradas com sucesso!');
+
+            return $this->redirectToRoute('user-dashboard');
+        } catch (ClientException $e) {
+            $response = $e->getResponse();
+
+            if ($response->getStatusCode() !== 200) {
+                $this->addFlash(
+                    'error',
+                    json_decode($response->getBody())->error
+                );
+            }
+        }
+    }
+
+    /**
+     * @Route("/dashboard/sell-stocks/{stock_id}", name="sell-stocks")
+     * @param Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function sellAction(Request $request, $stock_id)
+    {
+        $url = sprintf(
+            '/stock-option/%d/%d/sell',
+            $this->getUser()->getId(),
+            $stock_id
+        );
+
+        $transaction = json_decode(
+            $this
+                ->get('guzzle.client.homebroker_api')
+                ->get($url)
+                ->getBody()
+        );
+
+        $form = $this->createFormBuilder()
+            ->add('quantity', IntegerType::class, ['label' => 'Quantidade para vender'])
+            ->add('save', SubmitType::class, ['label' => 'Vender'])
+            ->getForm();
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted()) {
+            if ($form->get('quantity')->getData() > $transaction->trade->quantity) {
+                $form->get('quantity')->addError(new FormError('Quantidade não disponível para venda!'));
+            }
+
+            if ($form->isValid()) {
+                return $this->redirectToRoute(
+                    'confirm-sell-stocks',
+                    [
+                        'stock_id' => $stock_id,
+                        'quantity' => $form->get('quantity')->getData()
+                    ]
+                );
+            }
+        }
+
+        return $this->render(
+            'home-broker/sell-stocks.html.twig',
+            [
+                'form' => $form->createView(),
+                'transaction' => $transaction,
+            ]
+        );
+    }
+
+    /**
+     * @Route("/dashboard/confirm-sell-stocks/{stock_id}", name="confirm-sell-stocks")
+     * @param Request $request
+     *
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function confirmSellAction(Request $request, $stock_id)
+    {
+        $quantity = $request->get('quantity');
+
+        $url = sprintf(
+            '/stock-option/%d/%d/sell?quantity=%d',
+            $this->getUser()->getId(),
+            $stock_id,
+            $quantity
+        );
+
+        $transaction = json_decode(
+            $this
+                ->get('guzzle.client.homebroker_api')
+                ->get($url)
+                ->getBody()
+        );
+
+        $form = $this->createFormBuilder()
+            ->add('quantity', HiddenType::class, ['data' => $quantity])
+            ->add('save', SubmitType::class, ['label' => 'Vender'])
+            ->getForm();
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this
+                    ->get('guzzle.client.homebroker_api')
+                    ->post($url);
+
+                $this->addFlash('notice', 'Ações vendidas com sucesso!');
+
+                return $this->redirectToRoute('user-dashboard');
+            } catch (ClientException $e) {
+                $response = $e->getResponse();
+
+                if ($response->getStatusCode() !== 200) {
+                    $this->addFlash(
+                        'error',
+                        json_decode($response->getBody())->error
+                    );
+                }
+            }
+        }
+
+        return $this->render(
+            'home-broker/confirm-sell.html.twig',
+            [
+                'form' => $form->createView(),
+                'transaction' => $transaction,
             ]
         );
     }

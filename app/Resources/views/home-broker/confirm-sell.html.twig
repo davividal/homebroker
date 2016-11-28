@@ -1,0 +1,32 @@
+{% extends 'home-broker/base-dashboard.html.twig' %}
+
+{% block body %}
+    <h1>Vender ações</h1>
+
+    <dl>
+        <dt>Empresa</dt>
+        <dd>{{ transaction.trade.stock_option.company }}</dd>
+
+        <dt>Valor unitário</dt>
+        <dd>R$ {{ transaction.trade.stock_option.value|number_format(2, ',', '.') }}</dd>
+
+        <dt>Quantidade sendo vendida</dt>
+        <dd>{{ transaction.trade.quantity }}</dd>
+
+        <dt>Taxa de corretagem</dt>
+        <dd>R$ {{ transaction.fee|number_format(2, ',', '.') }}</dd>
+
+        <dt>Impostos</dt>
+        <dd>{{ transaction.tax }}</dd>
+
+        <dt>Saldo atual</dt>
+        <dd>R$ {{ transaction.actualBalance|number_format(2, ',', '.') }}</dd>
+
+        <dt>Saldo após a venda</dt>
+        <dd>R$ {{ transaction.newBalance|number_format(2, ',', '.') }}</dd>
+    </dl>
+
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    {{ form_end(form) }}
+{% endblock %}

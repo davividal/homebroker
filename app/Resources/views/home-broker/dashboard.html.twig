@@ -19,7 +19,7 @@
             <tr>
                 <td>{{ stock.stock_option.company }}</td>
                 <td>{{ stock.quantity }}</td>
-                <td><button>Vender</button></td>
+                <td><a href="{{ path("sell-stocks", {'stock_id': stock.stock_option.id}) }}">Vender</a></td>
             </tr>
         {% endfor %}
         <tr></tr>

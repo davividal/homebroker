@@ -1,0 +1,14 @@
+{% extends 'home-broker/base-dashboard.html.twig' %}
+
+{% block body %}
+    <h1>Confirmação de compra:</h1>
+
+    <dl>
+        <dt>Empresa:</dt>
+        <dd>{{ details }}</dd>
+    </dl>
+
+    {{ form_start(form) }}
+    {{ form_widget(form) }}
+    {{ form_end(form) }}
+{% endblock %}

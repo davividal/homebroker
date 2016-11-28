@@ -3,7 +3,7 @@
 {% block body %}
 <h1>Ações disponíveis</h1>
 
-<table>
+<table class="table table-striped">
     <thead>
     <tr>
         <th>Empresa</th>
@@ -16,10 +16,10 @@
     <tbody>
     {% for stock in stockOptions %}
         <tr>
-            <td>{{ stock.getCompany }}</td>
-            <td>{{ stock.getTickerSymbol }}</td>
-            <td>{{ stock.getQuantity }}</td>
-            <td>R$ {{ stock.getValue|number_format(2, ',', '.') }}</td>
+            <td>{{ stock.company }}</td>
+            <td>{{ stock.ticker_symbol }}</td>
+            <td>{{ stock.quantity }}</td>
+            <td>R$ {{ stock.value|number_format(2, ',', '.') }}</td>
         </tr>
     {% endfor %}
     </tbody>

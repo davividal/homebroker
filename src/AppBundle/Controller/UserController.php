@@ -24,7 +24,7 @@ class UserController extends Controller
         $stocks = json_decode(
             $this
                 ->get('guzzle.client.homebroker_api')
-                ->get('/stock-option/10')
+                ->get('/stock-option/'.$user->getId())
                 ->getBody()
         );
 
@@ -32,7 +32,30 @@ class UserController extends Controller
             'home-broker/dashboard.html.twig',
             [
                 'user' => $user,
-                'stocks' => $stocks
+                'stocks' => $stocks,
+            ]
+        );
+    }
+
+    /**
+     * @Route("/login", name="login")
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    public function loginAction()
+    {
+        $authenticationUtils = $this->get('security.authentication_utils');
+
+        // get the login error if there is one
+        $error = $authenticationUtils->getLastAuthenticationError();
+
+        // last username entered by the user
+        $lastUsername = $authenticationUtils->getLastUsername();
+
+        return $this->render(
+            'home-broker/login.html.twig',
+            [
+                'last_username' => $lastUsername,
+                'error' => $error
             ]
         );
     }

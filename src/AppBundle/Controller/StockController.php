@@ -10,9 +10,11 @@ namespace AppBundle\Controller;
 
 use AppBundle\Entity\StockOption;
 use AppBundle\Entity\Trade;
+use GuzzleHttp\Exception\ClientException;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Component\Form\FormError;
@@ -25,7 +27,12 @@ class StockController extends Controller
      */
     public function indexAction()
     {
-        $stockOptions = $this->get('doctrine')->getRepository('AppBundle:StockOption')->findAll();
+        $stockOptions = json_decode(
+            $this
+                ->get('guzzle.client.homebroker_api')
+                ->get('/stock-option')
+                ->getBody()
+        );
 
         return $this->render(
             'home-broker/stock-list.html.twig',
@@ -41,14 +48,22 @@ class StockController extends Controller
     public function buyAction(Request $request)
     {
         /** @var Trade $trade */
-        $trade = new Trade();
+        // $trade = new Trade();
 
-        $form = $this->createFormBuilder($trade)
+        $stockOptions = json_decode(
+            $this
+                ->get('guzzle.client.homebroker_api')
+                ->get('/stock-option')
+                ->getBody()
+        );
+
+        $form = $this->createFormBuilder()
             ->add(
                 'stockOption',
-                EntityType::class,
+                ChoiceType::class,
                 [
-                    'class' => 'AppBundle:StockOption',
+                    'choices' => $stockOptions,
+                    'choice_label' => 'company',
                     'label' => 'Empresa',
                 ]
             )
@@ -58,42 +73,33 @@ class StockController extends Controller
 
         $form->handleRequest($request);
 
-        if ($form->isSubmitted()) {
-            if (!($trade->getQuantity() <= $trade->getStockOption()->getQuantity())) {
-                $form
-                    ->get('stockOption')
-                    ->addError(new FormError('Esta empresa não possui essa quantidade de ações disponíveis.'));
-            }
+        if ($form->isSubmitted() && $form->isValid()) {
+            $trade = $form->getData();
 
-            $transactionValue = $trade->getStockOption()->getValue() * $trade->getQuantity();
-            if (!($transactionValue <= $this->getUser()->getBalance())) {
-                $form
-                    ->get('quantity')
-                    ->addError(new FormError('Seu saldo é insuficiente para executar esta transação.'));
-            }
+            $client = $this->get('guzzle.client.homebroker_api');
 
-            if ($form->isValid()) {
+            try {
+                $response = $client->post(
+                    sprintf(
+                        '/stock-option/%d/%d/buy?quantity=%d',
+                        $this->getUser()->getId(),
+                        $trade['stockOption']->id,
+                        $trade['quantity']
+                    )
+                );
 
-                $trade = $form->getData();
-                $trade->setUser($this->getUser());
-
-                $trade->setPaid($trade->getStockOption()->getValue());
-
-
-                $newBalance = $this->getUser()->getBalance() - $transactionValue;
-
-                $this->getUser()->setBalance($newBalance);
-
-                $newQuantity = $trade->getStockOption()->getQuantity() - $trade->getQuantity();
-                $trade->getStockOption()->setQuantity($newQuantity);
-
-                // ... perform some action, such as saving the task to the database
-                // for example, if Task is a Doctrine entity, save it!
-                $em = $this->getDoctrine()->getManager();
-                $em->persist($trade);
-                $em->flush();
+                $this->addFlash('notice', 'Ações compradas com sucesso!');
 
                 return $this->redirectToRoute('user-dashboard');
+            } catch (ClientException $e) {
+                $response = $e->getResponse();
+
+                if ($response->getStatusCode() !== 200) {
+                    $this->addFlash(
+                        'error',
+                        json_decode($response->getBody())->error
+                    );
+                }
             }
         }
 

@@ -39,9 +39,19 @@
 <div class="container">
 
     <div class="starter-template">
+        {% for flash_message in app.session.flashBag.get('notice') %}
+            <div class="flash-notice bg-info">
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
+        {% for flash_message in app.session.flashBag.get('error') %}
+            <div class="flash-notice bg-danger">
+                {{ flash_message }}
+            </div>
+        {% endfor %}
+
         {% block body %}
-            <h1>Bootstrap starter template</h1>
-            <p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
         {% endblock %}
     </div>
 

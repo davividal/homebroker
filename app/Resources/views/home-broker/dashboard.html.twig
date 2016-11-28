@@ -1,7 +1,7 @@
 {% extends 'home-broker/base-dashboard.html.twig' %}
 
 {% block body %}
-    <h1>Olá {{ user }}</h1>
+    <h1>Olá {{ user.getName }}</h1>
 
     <h2>Saldo: R$ {{ user.balance|number_format(2, ',', '.') }}</h2>
 

@@ -2,19 +2,15 @@
 # http://symfony.com/doc/current/book/security.html
 security:
     encoders:
-        AppBundle\Entity\User:
-            algorithm: bcrypt
-
+        AppBundle\Security\User\WebserviceUser:
+            algorithm: sha1
+            encode_as_base64: false
+            iterations: 1
 
     # http://symfony.com/doc/current/book/security.html#where-do-users-come-from-user-providers
     providers:
-        in_memory:
-            memory: ~
-
-        db_provider:
-            entity:
-                class: AppBundle:User
-                property: login
+        webservice:
+            id: app.webservice_user_provider
 
     firewalls:
         # disables authentication for assets and the profiler, adapt it according to your needs
@@ -29,12 +25,12 @@ security:
             # http_basic: ~
             # http://symfony.com/doc/current/book/security.html#a-configuring-how-your-users-will-authenticate
 
-            # form_login: ~
+#            form_login: ~
             # http://symfony.com/doc/current/cookbook/security/form_login_setup.html
 
-            pattern:    ^/dashboard
+            pattern:    (^/dashboard|/login_check)
             http_basic: ~
-            provider: db_provider
+            provider: webservice
 
     access_control:
         # require ROLE_ADMIN for /admin*

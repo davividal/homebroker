@@ -21,11 +21,18 @@ class UserController extends Controller
     {
         $user = $this->getUser();
 
+        $stocks = json_decode(
+            $this
+                ->get('guzzle.client.homebroker_api')
+                ->get('/stock-option/10')
+                ->getBody()
+        );
+
         return $this->render(
             'home-broker/dashboard.html.twig',
             [
                 'user' => $user,
-                'stocks' => $user->getTrades()
+                'stocks' => $stocks
             ]
         );
     }
